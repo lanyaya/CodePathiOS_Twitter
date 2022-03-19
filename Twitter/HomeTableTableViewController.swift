@@ -12,13 +12,23 @@ class HomeTableTableViewController: UITableViewController {
     var tweetArray = [NSDictionary]()
     var numberOfTweet : Int!
     
+    var myRefreshControl = UIRefreshControl()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         loadTweet()
 
-        
+        myRefreshControl.addTarget(self, action: #selector(loadTweet), for: .valueChanged)
+        tableView.refreshControl = myRefreshControl
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 150
     }
-    func loadTweet(){
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        loadTweet()
+    }
+    
+    @objc func loadTweet(){
         let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
         let myPrams = ["count": 10]
         
@@ -32,6 +42,7 @@ class HomeTableTableViewController: UITableViewController {
             }
             
             self.tableView.reloadData()
+            self.myRefreshControl.endRefreshing()
         }, failure: {
             (Error) in
             print("Error in loading tweet")
@@ -39,15 +50,19 @@ class HomeTableTableViewController: UITableViewController {
         
     }
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-          let cell = tableView.dequeueReusableCell(withIdentifier: "TwittCell", for: indexPath ) as! TweetCell
-          let user = self.tweetArray[indexPath.row]["user"] as! NSDictionary
-          cell.userNameLabel.text = user["name"] as? String
-          cell.tweetContent.text = self.tweetArray[indexPath.row]["text"] as? String
-          let imageUrl = URL(string: (user["profile_image_url_https"] as? String)!)
-          let data = try? Data(contentsOf: imageUrl!)
+        let cell = tableView.dequeueReusableCell(withIdentifier: "TwittCell", for: indexPath ) as! TweetCell
+        let user = self.tweetArray[indexPath.row]["user"] as! NSDictionary
+        cell.userNameLabel.text = user["name"] as? String
+        cell.tweetContent.text = self.tweetArray[indexPath.row]["text"] as? String
+        let imageUrl = URL(string: (user["profile_image_url_https"] as? String)!)
+        let data = try? Data(contentsOf: imageUrl!)
           if let imageData = data{
-              cell.profileImageView.image = UIImage(data: imageData)
-          }
+            cell.profileImageView.image = UIImage(data: imageData)
+        }
+        cell.setFavorite(tweetArray[indexPath.row]["favorited"] as! Bool)
+        cell.tweetId = tweetArray[indexPath.row]["id"] as! Int
+        cell.setRetweeted(tweetArray[indexPath.row]["retweeted"] as! Bool)
+    
           return cell
       }
     
